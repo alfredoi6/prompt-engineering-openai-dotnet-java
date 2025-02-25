@@ -6,3 +6,9 @@ dotnet/GitCommitMessageSummary/GitCommitMessageSummaryTests/bin/
 dotnet/GitCommitMessageSummary/GitCommitMessageSummaryTests/obj/
 
 dotnet/GitCommitMessageSummary/GitCommitMessageSummaryTests/test_output/
+
+dotnet/GitCommitMessageSummary/NunitTests/bin/
+
+dotnet/GitCommitMessageSummary/NunitTests/obj/
+
+dotnet/GitCommitMessageSummary/NunitTests/test_output/
