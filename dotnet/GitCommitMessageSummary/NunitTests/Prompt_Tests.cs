@@ -7,9 +7,20 @@ namespace NunitTests;
 
 public class Prompt_Tests : TestBase
 {
-
-
-
+	/// <summary>
+	/// Test to validate the generation of descriptive invoice time entries from Git commit messages 
+	/// using embeddings for deeper contextual understanding. 
+	/// 
+	/// This test evaluates the following:
+	/// - Proper loading of stored embeddings.
+	/// - Cosine similarity calculation for determining relatedness between current and past commit messages.
+	/// - Matching the most similar embedding for each commit and providing context-based insights.
+	/// - Conversion of commit messages into clear, non-technical, business-focused invoice entries.
+	/// - Verification of the output to ensure correct formatting, non-empty results, and valid justification insights.
+	/// 
+	/// The process includes leveraging embeddings to align new commit justifications with past ones, 
+	/// ensuring consistency and providing additional context for invoicing purposes.
+	/// </summary>
 	[Test]
 	public void Summarize_Messages_For_Invoice_Using_Embeddings()
 	{
@@ -21,42 +32,55 @@ public class Prompt_Tests : TestBase
 		string jsonContent = File.ReadAllText(_testFilePath);
 		List<GitCommit>? commits = JsonSerializer.Deserialize<List<GitCommit>>(jsonContent);
 
-		// Function to calculate cosine similarity
+		// Computes the cosine similarity between two embedding vectors.
+		// Cosine similarity measures how similar two vectors are based on their directional alignment.
+		// It ranges from -1 (completely opposite) to 1 (identical). A higher value means greater similarity.
 		float CalculateCosineSimilarity(ReadOnlySpan<float> vec1, ReadOnlySpan<float> vec2)
 		{
-			float dotProduct = 0;
-			float magnitude1 = 0;
-			float magnitude2 = 0;
+			float dotProduct = 0; // Accumulates the sum of element-wise multiplication of vec1 and vec2
+			float magnitude1 = 0; // Sum of squared values for vec1 (used to compute magnitude)
+			float magnitude2 = 0; // Sum of squared values for vec2 (used to compute magnitude)
 
+			// Compute dot product and vector magnitudes
 			for (int i = 0; i < vec1.Length; i++)
 			{
-				dotProduct += vec1[i] * vec2[i];
-				magnitude1 += vec1[i] * vec1[i];
-				magnitude2 += vec2[i] * vec2[i];
+				dotProduct += vec1[i] * vec2[i]; // Multiply corresponding elements and sum
+				magnitude1 += vec1[i] * vec1[i]; // Sum of squares for vec1
+				magnitude2 += vec2[i] * vec2[i]; // Sum of squares for vec2
 			}
 
+			// Compute the magnitude of each vector
 			float magnitude = (float)(Math.Sqrt(magnitude1) * Math.Sqrt(magnitude2));
+
+			// Return the cosine similarity (dot product divided by magnitudes)
+			// If magnitude is zero (to avoid division by zero), return 0 similarity
 			return magnitude == 0 ? 0 : dotProduct / magnitude;
 		}
 
-		// Function to find the most similar embedding
+		// Finds the most similar embedding from the stored embeddings by computing cosine similarity.
+		// It iterates through all stored embeddings and selects the one with the highest similarity score.
 		string? GetMostSimilarEmbedding(ReadOnlyMemory<float> currentMessageEmbedding)
 		{
-			float maxSimilarity = float.MinValue;
-			string? mostSimilarMessage = null;
+			float maxSimilarity = float.MinValue; // Initialize similarity score to the lowest possible value
+			string? mostSimilarMessage = null; // Store the closest matching commit message
 
+			// Iterate through stored embeddings and compute similarity with the current message embedding
 			foreach (var storedEmbedding in storedEmbeddings)
 			{
 				var similarity = CalculateCosineSimilarity(storedEmbedding.Value.Span, currentMessageEmbedding.Span);
+
+				// Update if a higher similarity score is found
 				if (similarity > maxSimilarity)
 				{
 					maxSimilarity = similarity;
-					mostSimilarMessage = storedEmbedding.Key;
+					mostSimilarMessage = storedEmbedding.Key; // Store the corresponding commit message
 				}
 			}
 
+			// Return the most similar commit message, or null if no close match is found
 			return mostSimilarMessage;
 		}
+
 
 		// Prepare string builder for the prompt
 		var sb = new StringBuilder();
@@ -68,7 +92,8 @@ public class Prompt_Tests : TestBase
 			sb.AppendLine($"Commit Message: {commit.Message}");
 
 			// Generate embedding for the commit message (assumed function for demonstration)
-			var currentMessageEmbedding = GenerateEmbeddingFromText(commit.Message); // Implement this according to your embeddings source
+			var currentMessageEmbedding =
+				GenerateEmbeddingFromText(commit.Message); // Implement this according to your embeddings source
 
 			// Find the most similar stored embedding
 			string? mostSimilar = GetMostSimilarEmbedding(currentMessageEmbedding);
@@ -76,8 +101,10 @@ public class Prompt_Tests : TestBase
 			if (mostSimilar != null)
 			{
 				sb.AppendLine($"Embedding Insights: A similar past commit justification was found: \"{mostSimilar}\".");
-				sb.AppendLine("Use this past work as a reference to explain the current work in a way that aligns with previous justifications.");
-				sb.AppendLine("Ensure consistency in language and reasoning while adapting the justification to the specifics of the new commit.");
+				sb.AppendLine(
+					"Use this past work as a reference to explain the current work in a way that aligns with previous justifications.");
+				sb.AppendLine(
+					"Ensure consistency in language and reasoning while adapting the justification to the specifics of the new commit.");
 			}
 
 			sb.AppendLine($"Files Changed: {string.Join(", ", commit.Files)}");
