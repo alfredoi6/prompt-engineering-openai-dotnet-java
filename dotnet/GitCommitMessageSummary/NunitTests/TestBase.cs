@@ -1,19 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
+﻿using System.Diagnostics;
 using System.Text.Json;
-using GitCommitMessageSummaryTests.Models;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Schema.Generation;
+using NunitTests.Models;
+using OpenAI;
 using OpenAI.Chat;
 
-namespace GitCommitMessageSummaryTests
+namespace NunitTests
 {
     public abstract class TestBase
     {
         protected IConfiguration _configuration { get; private set; }
         protected string _testFilePath;
+        protected string _embeddingsFilePath = "";
         protected TestBase()
         {
             LoadConfigurationWithUserSecrets();
@@ -34,9 +33,6 @@ namespace GitCommitMessageSummaryTests
          
         }
 
-
-        
-
         [SetUp]
         public void Setup()
         {
@@ -46,8 +42,26 @@ namespace GitCommitMessageSummaryTests
 	        // Ensure the test file exists before running tests
 	        if (!File.Exists(_testFilePath))
 		        throw new FileNotFoundException($"Test JSON file not found: {_testFilePath}");
+            
+            
+            var embeddingsOutputPath = GetIdeVisibleOutputDirectoryPath("test_embeddings");
+            // Ensure the output directory exists
+            Directory.CreateDirectory(embeddingsOutputPath);
+            var fileName = "justification_embeddings.json";
+            _embeddingsFilePath = Path.Combine(embeddingsOutputPath, fileName);
         }
 
+        protected string GetIdeVisibleOutputDirectoryPath(string folderName)
+        {
+            // Get the file path where this unit test class is saved
+            var filePath = new StackTrace(true).GetFrame(0)!.GetFileName();
+            var folderPath = Path.GetDirectoryName(filePath);
+
+            // Define the output directory inside the test folder
+            var outputPath = Path.Combine(folderPath!, folderName);
+            return outputPath;
+        }
+        
         /// <summary>
         /// Writes content to the console and a JSON file inside the 'test_output' directory.
         /// </summary>
@@ -56,13 +70,9 @@ namespace GitCommitMessageSummaryTests
         protected void WriteToConsoleAndFile(string testName, string content)
         {
             Console.WriteLine(content);
-
-            // Get the file path where this unit test class is saved
-            var filePath = new StackTrace(true).GetFrame(0)!.GetFileName();
-            var folderPath = Path.GetDirectoryName(filePath);
-
             // Define the output directory inside the test folder
-            var outputPath = Path.Combine(folderPath!, "test_output");
+            var outputPath = GetIdeVisibleOutputDirectoryPath("test_output");
+            
             var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
             var fileName = $"{testName}_{timestamp}.json";
             var fullPath = Path.Combine(outputPath, fileName);
@@ -85,6 +95,16 @@ namespace GitCommitMessageSummaryTests
             return JsonSerializer.Serialize(objectToSerialize, new JsonSerializerOptions { WriteIndented = true });
         }
 
+        protected ReadOnlyMemory<float> GenerateEmbeddingFromText(string textInput)
+        {
+            var apiKey = _configuration["OPENAI_API_KEY"];
+            var _openAIClient = new OpenAIClient(apiKey);
+            var embeddingClient = _openAIClient.GetEmbeddingClient("text-embedding-ada-002");
+            var embeddingResult = embeddingClient.GenerateEmbedding(textInput);
+            var embedding = embeddingResult.Value;
+            return embedding.ToFloats();
+        }
+        
         /// <summary>
         /// Calls OpenAI's chat model and returns a response.
         /// </summary>
@@ -130,6 +150,18 @@ namespace GitCommitMessageSummaryTests
             ChatCompletion completion = client.CompleteChat(messages, options);
 
             return completion.Content[0].Text;
+        }
+        
+        
+        public Dictionary<string, ReadOnlyMemory<float>>? LoadJustificationEmbeddings()
+        {
+            if (!File.Exists(_embeddingsFilePath))
+            {
+                return new Dictionary<string, ReadOnlyMemory<float>>(); // Return empty if file doesn't exist
+            }
+
+            var json = File.ReadAllText(_embeddingsFilePath);
+            return JsonSerializer.Deserialize<Dictionary<string, ReadOnlyMemory<float>>>(json);
         }
     }
 }

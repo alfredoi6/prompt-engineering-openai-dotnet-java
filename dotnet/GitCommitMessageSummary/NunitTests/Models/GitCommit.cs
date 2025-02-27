@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace GitCommitMessageSummaryTests.Models;
+namespace NunitTests.Models;
 
 public class GitCommit
 {

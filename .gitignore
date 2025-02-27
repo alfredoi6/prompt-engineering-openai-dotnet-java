@@ -12,3 +12,7 @@ dotnet/GitCommitMessageSummary/NunitTests/bin/
 dotnet/GitCommitMessageSummary/NunitTests/obj/
 
 dotnet/GitCommitMessageSummary/NunitTests/test_output/
+
+dotnet/GitCommitMessageSummary/.idea/
+
+*.user

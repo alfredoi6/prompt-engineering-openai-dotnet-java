@@ -1,4 +1,4 @@
-﻿namespace GitCommitMessageSummaryTests.Models;
+﻿namespace NunitTests.Models;
 
 
 public class InvoiceEntryList

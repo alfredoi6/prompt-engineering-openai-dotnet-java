@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
-using GitCommitMessageSummaryTests.Models;
-using NUnit.Framework;
+﻿using System.Text.Json;
+using NunitTests.Models;
 
-namespace GitCommitMessageSummaryTests;
+namespace NunitTests;
 
 public class Commit_Output_Tests : TestBase
 {
